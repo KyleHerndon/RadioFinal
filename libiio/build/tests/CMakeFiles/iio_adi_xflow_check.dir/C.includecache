@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+..//iio.h
+limits.h
+-
+stdint.h
+-
+stdlib.h
+-
+stddef.h
+-
+sys/types.h
+-
+stdbool.h
+-
+
+/home/kh/libiio/tests/iio_adi_xflow_check.c
+errno.h
+-
+getopt.h
+-
+iio.h
+-
+math.h
+-
+pthread.h
+-
+signal.h
+-
+stdio.h
+-
+string.h
+-
+unistd.h
+-
+

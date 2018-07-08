@@ -1,0 +1,1 @@
+/usr/bin/cc   -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Wpedantic -O2 -g -DNDEBUG   CMakeFiles/iio_readdev.dir/iio_readdev.c.o  -o iio_readdev -rdynamic ../libiio.so.0.14 -lpthread -Wl,-rpath,/home/kh/libiio/build: 

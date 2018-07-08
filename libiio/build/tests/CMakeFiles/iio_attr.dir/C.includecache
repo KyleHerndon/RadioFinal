@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+..//iio.h
+limits.h
+-
+stdint.h
+-
+stdlib.h
+-
+stddef.h
+-
+sys/types.h
+-
+stdbool.h
+-
+
+/home/kh/libiio/tests/iio_attr.c
+errno.h
+-
+getopt.h
+-
+iio.h
+-
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+ctype.h
+-
+sys/types.h
+-
+
