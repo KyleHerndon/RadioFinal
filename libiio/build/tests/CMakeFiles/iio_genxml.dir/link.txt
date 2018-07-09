@@ -1,1 +1,0 @@
-/usr/bin/cc   -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Wpedantic -O2 -g -DNDEBUG   CMakeFiles/iio_genxml.dir/iio_genxml.c.o  -o iio_genxml -rdynamic ../libiio.so.0.14 -Wl,-rpath,/home/kh/libiio/build: 
