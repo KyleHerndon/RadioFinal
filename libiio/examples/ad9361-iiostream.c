@@ -250,7 +250,10 @@ int main (int argc, char **argv)
 		perror("Could not create RX buffer");
 		shutdown();
 	}
-	txbuf = iio_device_create_buffer(tx, 1024*1024, false);
+	//txbuf = iio_device_create_buffer(tx, 1024*1024, false);
+	txbuf = iio_device_create_buffer(tx, 256, false);
+	// 64 -> 700 microseconds
+	// 256 -> 1000 microseconds
 	if (!txbuf) {
 		perror("Could not create TX buffer");
 		shutdown();
@@ -292,7 +295,7 @@ int main (int argc, char **argv)
 			//printf("Diff: %d\n", p_end-p_dat);
 			struct timeval tp;
 			gettimeofday(&tp, NULL);
-			uint32_t msg = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+			uint32_t msg = tp.tv_sec * 1000000 + tp.tv_usec;
 			//msg = 0x33333333;
 			uint32_t hsh = hashf(msg);
 			//hsh = msg;

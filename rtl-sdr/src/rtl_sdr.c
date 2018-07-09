@@ -35,7 +35,8 @@
 #include "convenience/convenience.h"
 
 #define DEFAULT_SAMPLE_RATE		2048000
-#define DEFAULT_BUF_LENGTH		(16 * 16384)
+#define DEFAULT_BUF_LENGTH		(512)
+//#define DEFAULT_BUF_LENGTH		(16 * 16384)
 #define MINIMAL_BUF_LENGTH		512
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 
@@ -321,7 +322,7 @@ int main(int argc, char **argv)
 		            // by god, we've done it!
 		            struct timeval tp;
 					gettimeofday(&tp, NULL);
-					uint32_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+					uint32_t ms = tp.tv_sec * 1000000 + tp.tv_usec;
 		            printf("Received: %d\n Difference: %d microseconds\n", msg, ms-msg);
 		            break;
 		          }
