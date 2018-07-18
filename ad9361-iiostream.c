@@ -172,7 +172,7 @@ bool cfg_ad9361_streaming_ch(struct iio_context *ctx, struct stream_cfg *cfg, en
 	if (!get_phy_chan(ctx, type, chid, &chn)) {	return false; }
 	wr_ch_str(chn, "rf_port_select",     cfg->rfport);
 	wr_ch_lli(chn, "rf_bandwidth",       cfg->bw_hz);
-	printf("%lld\n",cfg->fs_hz);
+	//printf("%lld\n",cfg->fs_hz);
 	wr_ch_lli(chn, "sampling_frequency", cfg->fs_hz);
 
 	// Configure LO channel
@@ -193,12 +193,14 @@ static uint32_t hashf(uint32_t x) {
 /* simple configuration and streaming */
 int main (int argc, char **argv)
 {
-	if (argc < 3) {
-		printf("Usage: ./main fr1 fr2\n");
+	if (argc < 5) {
+		printf("Usage: ./main uri fr1 fr2 txrx\n");
 		exit(1);
 	}
-	int fr1 = atoi(argv[1]);
-	int fr2 = atoi(argv[2]);
+	char* uri = argv[1];
+	int fr1 = atoi(argv[2]);
+	int fr2 = atoi(argv[3]);
+	int txrx = atoi(argv[4]);
 	//printf("Hi there\n");
 	// Streaming devices
 	struct iio_device *tx;
@@ -216,20 +218,22 @@ int main (int argc, char **argv)
 	signal(SIGINT, handle_sig);
 
 	// RX stream config
-	rxcfg.bw_hz = MHZ(20);   // 2 MHz rf bandwidth
-	rxcfg.fs_hz = MHZ(5);   // 2.5 MS/s rx sample rate
+	rxcfg.bw_hz = MHZ(2);   // 2 MHz rf bandwidth
+	rxcfg.fs_hz = MHZ(2.5);   // 2.5 MS/s rx sample rate
 	rxcfg.lo_hz = MHZ(fr1); // 2.5 GHz rf frequency
 	rxcfg.rfport = "A_BALANCED"; // port A (select for rf freq.)
 
 	// TX stream config
-	txcfg.bw_hz = MHZ(20); // 1.5 MHz rf bandwidth
-	txcfg.fs_hz = MHZ(5);   // 2.5 MS/s tx sample rate
+	txcfg.bw_hz = MHZ(2); // 1.5 MHz rf bandwidth
+	txcfg.fs_hz = MHZ(2.5);   // 2.5 MS/s tx sample rate
 	txcfg.lo_hz = MHZ(fr2); // 2.5 GHz rf frequency
 	txcfg.rfport = "A"; // port A (select for rf freq.)
 
 	printf("* Acquiring IIO context\n");
-	ASSERT((ctx = iio_create_context_from_uri("ip:192.168.2.1")) && "No context");
+	ASSERT((ctx = iio_create_context_from_uri(uri)) && "No context");
+	printf("count: %d\n", iio_context_get_devices_count(ctx));
 	ASSERT(iio_context_get_devices_count(ctx) > 0 && "No devices");
+	
 
 	printf("* Acquiring AD9361 streaming devices\n");
 	ASSERT(get_ad9361_stream_dev(ctx, TX, &tx) && "No tx dev found");
@@ -285,10 +289,7 @@ int main (int argc, char **argv)
 		char *p_dat, *p_end;
 		ptrdiff_t p_inc;
 
-		// Schedule TX buffer
-		nbytes_tx = iio_buffer_push(txbuf);
-		if (nbytes_tx < 0) { printf("Error pushing buf %d\n", (int) nbytes_tx); shutdown(); }
-
+		if (txrx == 1 || txrx == 3) {
 		// Refill RX buffer
 		nbytes_rx = iio_buffer_refill(rxbuf);
 		if (nbytes_rx < 0) { printf("Error refilling buf %d\n",(int) nbytes_rx); shutdown(); }
@@ -302,9 +303,13 @@ int main (int argc, char **argv)
 			for (int j = 0; j < 64; j++) {
 				const int16_t i = ((int16_t*)p_dat)[2*j+0]; // Real (I)
 				const int16_t q = ((int16_t*)p_dat)[2*j+1]; // Imag (Q)
+				//printf("I:%c%04X\n",(i<0)?'-':' ',(i<0)?-i:i);
+				//printf("Q:%c%04X\n",(q<0)?'-':' ',(q<0)?-q:q);
 				float mag = i*i+q*q;
+				//printf("mag:%f\n", mag);
+				//printf("avg:%f\n",average);
 				int k = 63-j;
-				if (mag > (average/2)) {
+				if (mag > (average)) {
 					//printf("%f : ON\n", mag);
 					content += (1L << k);
 				} else {
@@ -320,8 +325,8 @@ int main (int argc, char **argv)
 			uint64_t select_first_32 = ((1L << 32) - 1) << 32;
 	        uint64_t select_last_32  = ((1L << 32) - 1);
 	        //printf("%0x", (content & select_first_32) >> 32);
-	        //printf("%016llx\n", content);
-
+	        //printf("recv:%016lx\n", content);
+	        //int flag = 0;
 	        for (int i = 0; i < 64; i+=1) {
 	          uint64_t select_all_but_first_i = (1L << (64-i)) - 1;
 	          uint64_t select_first_i = ((1L << i) - 1) << (64-i);
@@ -334,11 +339,20 @@ int main (int argc, char **argv)
 	            struct timeval tp;
 				gettimeofday(&tp, NULL);
 				uint32_t ms = tp.tv_sec * 1000000 + tp.tv_usec;
-	            printf("Received: %d\n Difference: %d microseconds\n", msg, ms-msg);
+	            printf("Received: %u\n Difference: %d microseconds. offset: %d\n", msg, ms-msg, i);
+	            //flag = 1;
 	            break;
 	          }
 	        }
+	        /*if (!flag){
+	        	printf("Miss\n");
+	        }*/
 		}
+		}
+		if (txrx == 2 || txrx == 3) {
+		// Schedule TX buffer
+		nbytes_tx = iio_buffer_push(txbuf);
+		if (nbytes_tx < 0) { printf("Error pushing buf %d\n", (int) nbytes_tx); shutdown(); }
 
 		// WRITE: Get pointers to TX buf and write IQ to TX buf port 0
 		//printf("What\n");
@@ -350,9 +364,11 @@ int main (int argc, char **argv)
 			struct timeval tp;
 			gettimeofday(&tp, NULL);
 			uint32_t msg = tp.tv_sec * 1000000 + tp.tv_usec;
-			//msg = 0x33333333;
+			//msg = 0x11111111;
 			uint32_t hsh = hashf(msg);
+			printf("Sent: %u\n", msg);
 			//hsh = msg;
+			//printf("send:%08x %08x\n", hsh,msg);
 			for (int i = 0; i < 32; i++) {
 				int k = 31-i;
 				int16_t x = 21845;
@@ -378,11 +394,12 @@ int main (int argc, char **argv)
 				((int16_t*)p_dat)[64+2*i+1] = x << 4; // Imag (Q)
 			}
 		}
+		}
 
 		// Sample counter increment and status output
 		nrx += nbytes_rx / iio_device_get_sample_size(rx);
 		ntx += nbytes_tx / iio_device_get_sample_size(tx);
-		printf("\tRX %8.2f MSmp, TX %8.2f MSmp\n", nrx/1e6, ntx/1e6);
+		//printf("\tRX %8.2f MSmp, TX %8.2f MSmp\n", nrx/1e6, ntx/1e6);
 	}
 
 	shutdown();
